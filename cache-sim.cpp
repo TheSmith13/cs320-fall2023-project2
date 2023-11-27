@@ -112,6 +112,7 @@ void simFullAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 			for (auto& line : cache) {
 				line.lru++;
 				if (&line == &(*it)) {
+					line.lru = 0;
 					line.hotCold = 0;
 				}
 				
