@@ -126,7 +126,7 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
 			for (auto& line : cache) {
-				if (&line != &(*it)) {
+				if (&line != &(*lruIt)) {
 					line.lru++;
 				}
 			}	
@@ -149,14 +149,16 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		if (it != cache.end()) {
 			cacheHits++;
+			it->lru++;
+			it->hotCold++;
 			for (auto& line : cache) {
-				line.lru++;
 				if (&line == &(*it)) {
 					line.lru = 0;
 					line.hotCold = 0;
 				}
 				
 				else {
+					line.lru++;
 					line.hotCold++;
 				}
 			}
@@ -178,10 +180,8 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 			lruIt->lru = 0;
 			lruIt->hotCold = 0;
 			for (auto& line : cache) {
-				if (&line != &(*lruIt)) {
-					line.lru++;
-					line.hotCold++;
-				}
+				line.lru++;
+				line.hotCold++;
 			}
 		}
 	}
