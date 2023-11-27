@@ -3,6 +3,8 @@
 #include <sstream>
 #include <vector>
 
+using namespace std;
+
 struct memInstruct {
 	char op;
 	unsigned long address;
@@ -13,8 +15,27 @@ struct cacheLine {
 	unsigned long tag;
 };
 
-void simDirectMapCache() {
+const int cacheLineSize = 32;
 
+void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, int cacheSize) {
+	int numLines = cacheSize / cacheLineSize;
+	vector<cacheLine> cache(numLines, {false, 0});
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		int cacheIndex = instruction.address / cacheLineSize % numLines;
+		if (cache[cacheIndex].valid && (cache[cacheIndex].tag == instruction.address / cacheLineSize)) {
+			cacheHits++;
+		}
+		
+		else {
+			cache[cacheIndex].valid = true;
+			cache[cacheIndex].tag = instruction.address / cacheLineSize;
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << ";";
 }
 
 void simSetAssocCache() {
@@ -46,12 +67,12 @@ int main() {
 	
 	vector<memInstruct> memTrace;
 	string line;
-	while (getline(inputFile, line) {
+	while (getline(inputFile, line)) {
 		istringstream iss(line);
 		char op;
 		unsigned long address;
 		if (iss >> op >> hex >> address) {
-			memTrace.push_back({operation, address});
+			memTrace.push_back({op, address});
 		}
 		
 		else {
@@ -61,12 +82,13 @@ int main() {
 	}
 	
 	inputFile.close();
-	ofStream outFile("output.txt");
+	ofstream outFile("output.txt");
 	
-	simDirectMapCache();
-	simDirectMapCache();
-	simDirectMapCache();
-	simDirectMapCache();
+	 
+	simDirectMapCache(memTrace, outFile, 1028);
+	simDirectMapCache(memTrace, outFile, 4*1028);
+	simDirectMapCache(memTrace, outFile, 16*1028);
+	simDirectMapCache(memTrace, outFile, 32*1028);
 	cout << endl;
 	
 	simSetAssocCache();
