@@ -57,7 +57,7 @@ void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, i
 void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
 	int numLines = 16384 / cacheLineSize;
 	int numSets = numLines / associativity;
-	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
+	vector<vector<setCacheLine>> cache(numSets, vector<setCacheLine>(associativity, {false, 0, 0}));
 	int cacheHits = 0;
 	int totalAccesses = 0;
 	for (const auto& instruction : memTrace) {
@@ -109,13 +109,12 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 		
 		if (it != cache.end()) {
 			cacheHits++;
+			it->lru = 0;
 			for (auto& line : cache) {
 				if (&line != &(*it)) {
 					line.lru++;
 				}
 			}
-			
-			it->lru = 0;
 		}
 		
 		else {
@@ -125,17 +124,12 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 			
 			lruIt->valid = true;
 			lruIt->tag = instruction.address / cacheLineSize;
-		}
-		
-		
-		for (auto& line : cache) {
-			if (&line != &(*it)) {
-				line.lru++;
-			}
-		}
-		
-		if (it != cache.end()) {
-			it->lru = 0;
+			lruIt->lru = 0;
+			for (auto& line : cache) {
+				if (&line != &(*it)) {
+					line.lru++;
+				}
+			}	
 		}
 	}
 	
@@ -395,10 +389,10 @@ int main(int argc, char *argv[]) {
 	simSetAssocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	simHotColdLRUCache(memTrace, outFile);
+	simFullLRUCache(memTrace, outFile);
 	outFile << endl;
 	
-	simFullLRUCache(memTrace, outFile);
+	simHotColdLRUCache(memTrace, outFile);
 	outFile << endl;
 	
 	simSetAssocNoAllocCache(memTrace, outFile, 2);
