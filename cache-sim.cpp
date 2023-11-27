@@ -24,6 +24,13 @@ struct setCacheLine {
 	int lru;
 };
 
+struct fullCacheLine {
+	bool valid;
+	unsigned long tag;
+	int lru;
+	int hotCold;
+};
+
 const int cacheLineSize = 32;
 
 void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, int cacheSize) {
@@ -89,8 +96,56 @@ void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, in
 	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simFullAssocCache() {
-
+void simFullAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
+	int numLines = 16384 / cacheLineSize;
+	vector<fullCacheLine> cache(numLines, {false, 0, 0, 0});
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		auto it = find_if(cache.begin(), cache.end(), [&](const fullCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != cache.end()) {
+			cacheHits++;
+			for (auto& line : cache) {
+				line.lru++;
+				if (&line == &(*it)) {
+					line.hotCold = 0;
+				}
+				
+				else {
+					line.hotCold++;
+				}
+			}
+		}
+		
+		else {
+			auto lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			if (lruIt->hotCold > 0) {
+				lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+					return lineA.hotCold < lineB.hotCold;
+				});
+			}
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+			lruIt->hotCold = 0;
+			for (auto& line : cache) {
+				if (&line != &(*lruIt)) {
+					line.lru++;
+					line.hotCold++;
+				}
+			}
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
 void simSetAssocNoAllocCache() {
@@ -144,7 +199,7 @@ int main() {
 	simSetAssocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	simFullAssocCache();
+	simFullAssocCache(memTrace, outFile);
 	outFile << endl;
 	
 	simSetAssocNoAllocCache();
