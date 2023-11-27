@@ -2,6 +2,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <iomanip>
+#include <algorithm>
+#include <list>
 
 using namespace std;
 
@@ -10,16 +13,22 @@ struct memInstruct {
 	unsigned long address;
 };
 
-struct cacheLine {
+struct directCacheLine {
 	bool valid;
 	unsigned long tag;
+};
+
+struct setCacheLine {
+	bool valid;
+	unsigned long tag;
+	int lru;
 };
 
 const int cacheLineSize = 32;
 
 void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, int cacheSize) {
 	int numLines = cacheSize / cacheLineSize;
-	vector<cacheLine> cache(numLines, {false, 0});
+	vector<directCacheLine> cache(numLines, {false, 0});
 	int cacheHits = 0;
 	int totalAccesses = 0;
 	for (const auto& instruction : memTrace) {
@@ -35,11 +44,49 @@ void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, i
 		}
 	}
 	
-	outFile << cacheHits << "," << totalAccesses << ";";
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simSetAssocCache() {
-
+void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
+	int numLines = 16384 / cacheLineSize;
+	int sets = numLines / associativity;
+	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		int setIndex = instruction.address / cacheLineSize % sets;
+		auto& set = cache[setIndex];
+		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != set.end()) {
+			cacheHits++;
+			for (auto& line : set) {
+				line.lru++;
+			}
+			
+			it->lru = 0;
+		}
+		
+		else {
+			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+			for (auto& line : set) {
+				if (&line != &(*lruIt)) {
+					line.lru++;
+				}
+			}
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
 void simFullAssocCache() {
@@ -59,8 +106,8 @@ void simSetAssociativeOnMissPreFetchCache() {
 }
 
 int main() {
-	ifstream inputFile("input_trace.txt");
-	if (!inputFile.is_open()) {
+	ifstream inputFile("trace1.txt");
+	if (!(inputFile.is_open())) {
 		cout << "Error: unable to open input file." << endl;
 		return 1;
 	}
@@ -85,35 +132,35 @@ int main() {
 	ofstream outFile("output.txt");
 	
 	 
-	simDirectMapCache(memTrace, outFile, 1028);
-	simDirectMapCache(memTrace, outFile, 4*1028);
-	simDirectMapCache(memTrace, outFile, 16*1028);
-	simDirectMapCache(memTrace, outFile, 32*1028);
-	cout << endl;
+	simDirectMapCache(memTrace, outFile, 1024);
+	simDirectMapCache(memTrace, outFile, 4096);
+	simDirectMapCache(memTrace, outFile, 16384);
+	simDirectMapCache(memTrace, outFile, 32768);
+	outFile << endl;
 	
-	simSetAssocCache();
-	simSetAssocCache();
-	simSetAssocCache();
-	simSetAssocCache();
-	cout << endl;
+	simSetAssocCache(memTrace, outFile, 2);
+	simSetAssocCache(memTrace, outFile, 4);
+	simSetAssocCache(memTrace, outFile, 8);
+	simSetAssocCache(memTrace, outFile, 16);
+	outFile << endl;
 	
 	simFullAssocCache();
-	cout << endl;
+	outFile << endl;
 	
 	simSetAssocNoAllocCache();
-	cout << endl;
+	outFile << endl;
 	
 	simSetAssocNextLinePreFetchCache();
 	simSetAssocNextLinePreFetchCache();
 	simSetAssocNextLinePreFetchCache();
 	simSetAssocNextLinePreFetchCache();
-	cout << endl;
+	outFile << endl;
 	
 	simSetAssociativeOnMissPreFetchCache();
 	simSetAssociativeOnMissPreFetchCache();
 	simSetAssociativeOnMissPreFetchCache();
 	simSetAssociativeOnMissPreFetchCache();
-	cout << endl;
+	outFile << endl;
 	
 	outFile.close();
 	return 0;
