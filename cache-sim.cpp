@@ -56,21 +56,21 @@ void simDirectMapCache(const vector<memInstruct>& memTrace, ofstream& outFile, i
 
 void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
 	int numLines = 16384 / cacheLineSize;
-	int sets = numLines / associativity;
+	int numSets = numLines / associativity;
 	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
 	int cacheHits = 0;
 	int totalAccesses = 0;
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
-		int setIndex = instruction.address / cacheLineSize % sets;
-		auto& set = cache[setIndex];
-		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+		int setIndex = instruction.address / cacheLineSize % numSets;
+		auto& currentSet = cache[setIndex];
+		auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
 			return line.valid && line.tag == instruction.address / cacheLineSize;
 		});
 		
-		if (it != set.end()) {
+		if (it != currentSet.end()) {
 			cacheHits++;
-			for (auto& line : set) {
+			for (auto& line : currentSet) {
 				line.lru++;
 			}
 			
@@ -78,14 +78,14 @@ void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, in
 		}
 		
 		else {
-			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
 				return lineA.lru < lineB.lru;
 			});
 			
 			lruIt->valid = true;
 			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
-			for (auto& line : set) {
+			for (auto& line : currentSet) {
 				if (&line != &(*lruIt)) {
 					line.lru++;
 				}
@@ -125,7 +125,17 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 			
 			lruIt->valid = true;
 			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
+		}
+		
+		
+		for (auto& line : cache) {
+			if (&line != &(*it)) {
+				line.lru++;
+			}
+		}
+		
+		if (it != cache.end()) {
+			it->lru = 0;
 		}
 	}
 	
@@ -185,20 +195,169 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simSetAssocNoAllocCache() {
-
+void simSetAssocNoAllocCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
+	int numLines = 16384 / cacheLineSize;
+	int sets = numLines / associativity;
+	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		int setIndex = instruction.address / cacheLineSize % sets;
+		auto& set = cache[setIndex];
+		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != set.end()) {
+			cacheHits++;
+			it->lru = 0;
+		}
+		
+		else if (instruction.op == 'S') {
+		
+		}
+		
+		else {
+			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+		}
+		
+		for (auto& line : set) {
+			if (&line != &(*it)) {
+				line.lru++;
+			}
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simSetAssocNextLinePreFetchCache() {
-
+void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
+	int numLines = 16384 / cacheLineSize;
+	int sets = numLines / associativity;
+	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		int setIndex = instruction.address / cacheLineSize % sets;
+		auto& set = cache[setIndex];
+		int nextLineIndex = (instruction.address / cacheLineSize + 1) % sets;
+		int nextLineTag = nextLineIndex / associativity;
+		auto preFetchIt = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (preFetchIt == set.end()) {
+			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+		}
+		
+		else {
+			preFetchIt->lru = 0;
+		}
+		
+		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != set.end()) {
+			cacheHits++;
+			it->lru = 0;
+		}
+		
+		else {
+			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+		}
+		
+		for (auto& line : set) {
+			if (&line != &(*it)) {
+				line.lru++;
+			}
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simSetAssociativeOnMissPreFetchCache() {
-
+void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, ofstream& outFile, int associativity) {
+	int numLines = 16384 / cacheLineSize;
+	int sets = numLines / associativity;
+	vector<vector<setCacheLine>> cache(sets, vector<setCacheLine>(associativity, {false, 0, 0}));
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		int setIndex = instruction.address / cacheLineSize % sets;
+		auto& set = cache[setIndex];
+		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != set.end()) {
+			cacheHits++;
+			it->lru = 0;
+		}
+		
+		else {
+			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+			int nextLineIndex = (instruction.address / cacheLineSize + 1) % sets;
+			int nextLineTag = nextLineIndex / associativity;
+			auto preFetchIt = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+				return line.valid && line.tag == instruction.address / cacheLineSize;
+			});
+		
+			if (preFetchIt == set.end()) {
+				auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
+				
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+			}
+			
+			else {
+				preFetchIt->lru = 0;
+			}
+		}
+		
+		for (auto& line : set) {
+			if (&line != &(*it)) {
+				line.lru++;
+			}
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-int main() {
-	ifstream inputFile("trace1.txt");
+int main(int argc, char *argv[]) {
+	string instructFile(argv[1]);
+	ifstream inputFile(instructFile);
 	if (!(inputFile.is_open())) {
 		cout << "Error: unable to open input file." << endl;
 		return 1;
@@ -236,25 +395,28 @@ int main() {
 	simSetAssocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	simFullLRUCache(memTrace, outFile);
-	outFile << endl;
-	
 	simHotColdLRUCache(memTrace, outFile);
 	outFile << endl;
 	
-	simSetAssocNoAllocCache();
+	simFullLRUCache(memTrace, outFile);
 	outFile << endl;
 	
-	simSetAssocNextLinePreFetchCache();
-	simSetAssocNextLinePreFetchCache();
-	simSetAssocNextLinePreFetchCache();
-	simSetAssocNextLinePreFetchCache();
+	simSetAssocNoAllocCache(memTrace, outFile, 2);
+	simSetAssocNoAllocCache(memTrace, outFile, 4);
+	simSetAssocNoAllocCache(memTrace, outFile, 8);
+	simSetAssocNoAllocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	simSetAssociativeOnMissPreFetchCache();
-	simSetAssociativeOnMissPreFetchCache();
-	simSetAssociativeOnMissPreFetchCache();
-	simSetAssociativeOnMissPreFetchCache();
+	simSetAssocNextLinePreFetchCache(memTrace, outFile, 2);
+	simSetAssocNextLinePreFetchCache(memTrace, outFile, 4);
+	simSetAssocNextLinePreFetchCache(memTrace, outFile, 8);
+	simSetAssocNextLinePreFetchCache(memTrace, outFile, 16);
+	outFile << endl;
+	
+	simSetAssociativeOnMissPreFetchCache(memTrace, outFile, 2);
+	simSetAssociativeOnMissPreFetchCache(memTrace, outFile, 4);
+	simSetAssociativeOnMissPreFetchCache(memTrace, outFile, 8);
+	simSetAssociativeOnMissPreFetchCache(memTrace, outFile, 16);
 	outFile << endl;
 	
 	outFile.close();
