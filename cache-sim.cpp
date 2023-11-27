@@ -96,7 +96,43 @@ void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, in
 	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
-void simFullAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
+void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
+	int numLines = 16384 / cacheLineSize;
+	vector<fullCacheLine> cache(numLines, {false, 0, 0, 0});
+	int cacheHits = 0;
+	int totalAccesses = 0;
+	for (const auto& instruction : memTrace) {
+		totalAccesses++;
+		auto it = find_if(cache.begin(), cache.end(), [&](const fullCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
+		
+		if (it != cache.end()) {
+			cacheHits++;
+			for (auto& line : cache) {
+				if (&line != &(*it)) {
+					line.lru++;
+				}
+			}
+			
+			it->lru = 0;
+		}
+		
+		else {
+			auto lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
+		}
+	}
+	
+	outFile << cacheHits << "," << totalAccesses << "; ";	
+}
+
+void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	int numLines = 16384 / cacheLineSize;
 	vector<fullCacheLine> cache(numLines, {false, 0, 0, 0});
 	int cacheHits = 0;
@@ -200,7 +236,10 @@ int main() {
 	simSetAssocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	simFullAssocCache(memTrace, outFile);
+	simFullLRUCache(memTrace, outFile);
+	outFile << endl;
+	
+	simHotColdLRUCache(memTrace, outFile);
 	outFile << endl;
 	
 	simSetAssocNoAllocCache();
