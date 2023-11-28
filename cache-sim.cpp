@@ -351,12 +351,11 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
 		}
-		 
-		int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
-		int nextTagLine = nextLineIndex / associativity;
-		auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
-			return line.valid && line.tag == nextTagLine;
-		});
+		
+		auto preFetchIt = next(it);
+		if (preFetchIt == currentSet.end()) {
+			preFetchIt == currentSet.begin();
+		}
 		
 		if (preFetchIt != currentSet.end()) {
 			preFetchIt->lru = 0;
@@ -377,10 +376,9 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			}
 			
 			lruIt->valid = true;
-			lruIt->tag = nextTagLine;
+			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
 		}
-		
 	}
 	
 	outFile << cacheHits << "," << totalAccesses << "; ";
