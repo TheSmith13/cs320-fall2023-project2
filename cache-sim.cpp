@@ -320,27 +320,31 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 	vector<vector<setCacheLine>> cache(numSets, vector<setCacheLine>(associativity, {false, 0, 0}));
 	int cacheHits = 0;
 	int totalAccesses = 0;
-	for (const auto& instruction : memTrace) {
+	for (size_t i = 0; i < memTrace.size(); ++i) {
 		totalAccesses++;
+		const auto& instruction = memTrace[i];
 		int setIndex = instruction.address / cacheLineSize % numSets;
 		auto& currentSet = cache[setIndex];
-		int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
-		int nextLineTag = nextLineIndex / associativity;
-		auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
-			return line.valid && line.tag == nextLineTag;
-		});
-		
-		if (preFetchIt == currentSet.end()) {
-			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-				return lineA.lru < lineB.lru;
+		if (i < memTrace.size() - 1) {
+			const auto& nextInstruction = memTrace[i+1];
+			int nextSetIndex = (nextInstruction.address / cacheLineSize) % numSets;
+			auto& nextSet = cache[nextSetIndex];
+			auto preFetchIt = find_if(nextSet.begin(), nextSet.end(), [&](const setCacheLine& line) {
+				return line.valid && line.tag == nextInstruction.address / cacheLineSize;
 			});
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
-		}
-		
-		else {
-			preFetchIt->lru = 0;
+			
+			if (preFetchIt == nextSet.end()) {
+				auto lruIt = max_element(nextSet.begin(), nextSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+			}
+			
+			else {
+				preFetchIt->lru = 0;
+			}
 		}
 		
 		auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
@@ -353,8 +357,15 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 		}
 		
 		else {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
 			for (auto& line : currentSet) {
-				if (&line != &(*it)) {
+				if (&line != &(*lruIt)) {
 					line.lru++;
 				}
 			}
