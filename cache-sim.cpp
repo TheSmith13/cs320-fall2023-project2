@@ -191,41 +191,40 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 			for (auto& line : cache) {
 				if (&line != &(*it)) {
 					line.lru++;
-					line.hotCold++;
 				}
 			}
 			
 			it->hotCold = (it->tag % numLines) < (numLines / 2) ? 0 : 1;
-			
-			/*
-			if (it->hotCold == 0) {
-				it->hotCold = (it->tag % numLines) < (numLines / 2) ? 1 : 0;
-			}
-			
-			else if (it->hotCold == 1) {
-				it->hotCold = (it->tag % numLines) < (numLines / 2) ? 0 : 1;
-			}
-			*/
 		}
 		
 		else {
-			auto lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
-				return lineA.lru < lineB.lru;
-			});
-			
-			auto hotColdIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
-				return lineA.hotCold < lineB.hotCold;
-			});
+			if (it->hotCold = 0) {
+				auto lruIt = max_element(cache.begin() + (cache.size() / 2), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
 				
-			for (auto& line : cache) {
-				line.lru++;
+				for (auto& line : cache) {
+					line.lru++;
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
 			}
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
-			lruIt->hotCold = hotColdIt->hotCold;
 			
-			//lruIt->hotCold = (it->tag % numLines) < (numLines / 2) ? 0 : 1;
+			else if (it->hotCold = 1) {
+				auto lruIt = max_element(cache.begin(), cache.begin() + (cache.size() / 2), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
+				
+				for (auto& line : cache) {
+					line.lru++;
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+			}
 		}
 	}
 	
@@ -331,6 +330,8 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			line.lru++;
 		}
 		
+		preFetchIt->valid = true;
+		preFetchIt->tag = (instruction.address + cacheLineSize) / cacheLineSize;
 		preFetchIt->lru = 0;
 	}
 	
@@ -387,6 +388,8 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 				line.lru++;
 			}
 			
+			preFetchIt->valid = true;
+			preFetchIt->tag = (instruction.address + cacheLineSize) / cacheLineSize;
 			preFetchIt->lru = 0;
 		}
 	}
