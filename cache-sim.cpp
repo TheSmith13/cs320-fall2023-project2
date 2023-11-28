@@ -352,47 +352,32 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			lruIt->lru = 0;
 		}
 		
-		auto preFetchIt = currentSet.begin();
+		int nextLineIndex = instruction.address / (cacheLineSize + 1) % numSets;
+		auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == nextLineIndex / cacheLineSize;
+		});
 		
-		if (it != currentSet.end()) {
-			preFetchIt = next(it);
-		}
-		
-		if (preFetchIt == currentSet.end()) {
-			preFetchIt = currentSet.begin();
-		}
-		
-		preFetchIt->lru = 0;
-		for (auto& line : currentSet) {
-			if (&line != &(*preFetchIt)) {
+		if (preFetchIt != currentSet.end()) {
+			for (auto& line : currentSet) {
 				line.lru++;
 			}
-		}
-		
-		/*	
-		if (preFetchIt != currentSet.end()) {
+			
 			preFetchIt->lru = 0;
-			for (auto& line : currentSet) {
-				if (&line != &(*preFetchIt)) {
-					line.lru++;
-				}
-			}
 		}
 		
 		else {
-			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [&](const setCacheLine& lineA, const setCacheLine& lineB) {
 				return lineA.lru < lineB.lru;
 			});
 			
-			for (auto& line : currentSet) {
-				line.lru++;	
-			}
 			
 			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->tag = instruction.address / (cacheLineSize + 1);
 			lruIt->lru = 0;
+			for (auto& line : currentSet) {
+				line.lru++;
+			}
 		}
-		*/
 	}
 	
 	outFile << cacheHits << "," << totalAccesses << "; ";
@@ -444,37 +429,9 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 				preFetchIt = currentSet.begin();
 			}
 			
-			
-			preFetchIt->lru = 0;
-			for (auto& line : currentSet) {
-				if (&line != &(*preFetchIt)) {
-					line.lru++;
-				}
-			}
-			/*
-			if (preFetchIt != currentSet.end()) {
-				preFetchIt->lru = 0;
-				for (auto& line : currentSet) {
-					if (&line != &(*preFetchIt)) {
-						line.lru++;
-					}
-				}
-			}
-			
 			else {
-				auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-					return lineA.lru < lineB.lru;
-				});
 				
-				for (auto& line : currentSet) {
-					line.lru++;	
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
 			}
-			*/
 		}
 	}
 	
