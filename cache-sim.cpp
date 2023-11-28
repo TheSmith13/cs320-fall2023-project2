@@ -187,12 +187,20 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		if (it != cache.end()) {
 			cacheHits++;
 			it->lru = 0;
-			it->hotCold = 0;
+			
 			for (auto& line : cache) {
 				if (&line != &(*it)) {
 					line.lru++;
 					line.hotCold++;
 				}
+			}
+			
+			if (it->hotCold == 0 && instruction.op == 'L') {
+				it->hotCold = (it->tag % numLines) <= (numLines / 2) ? 1 : 0;
+			}
+			
+			if (it->hotCold == 1 && instruction.op == 'L') {
+				it->hotCold = (it->tag % numLines) <= (numLines / 2) ? 0 : 1;
 			}
 		}
 		
@@ -201,32 +209,43 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 				return lineA.lru < lineB.lru;
 			});
 			
-			
-			lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
-				return lineA.hotCold < lineB.hotCold;
-			});
-			
 			if (instruction.op == 'L') {
 				lruIt->valid = true;
 				lruIt->tag = instruction.address / cacheLineSize;
 				lruIt->lru = 0;
-				lruIt->hotCold = 0;
 				for (auto& line : cache) {
 					line.lru++;
-					line.hotCold++;
+				}
+				
+				if (lruIt->hotCold == 0) {
+					lruIt->hotCold = (lruIt->tag % numLines) <= (numLines / 2) ? 1 : 0;
+				}
+				
+				if (lruIt->hotCold == 1) {
+					lruIt->hotCold = (lruIt->tag % numLines) <= (numLines / 2) ? 0 : 1;
 				}
 			}
 			
 			else if (instruction.op == 'S') {
 				for (auto& line : cache) {
 					line.lru++;
-					line.hotCold++;
 				}
 				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
-				lruIt->hotCold = 0;
+				auto hotColdIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+					return lineA.hotCold < lineB.hotCold;
+				});
+				
+				hotColdIt->valid = true;
+				hotColdIt->tag = instruction.address / cacheLineSize;
+				hotColdIt->lru = 0;
+				
+				if (hotColdIt->hotCold == 0) {
+					hotColdIt->hotCold = (hotColdIt->tag % numLines) <= (numLines / 2) ? 1 : 0;
+				}
+				
+				if (hotColdIt->hotCold == 1) {
+					hotColdIt->hotCold = (hotColdIt->tag % numLines) <= (numLines / 2) ? 0 : 1;
+				}
 			}
 		}
 	}
