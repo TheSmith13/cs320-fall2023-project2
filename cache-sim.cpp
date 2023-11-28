@@ -359,9 +359,17 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 		}
 		
 		if (preFetchIt == currentSet.end()) {
-			preFetchIt == currentSet.begin();
+			preFetchIt = currentSet.begin();
 		}
-			
+		
+		preFetchIt->lru = 0;
+		for (auto& line : currentSet) {
+			if (&line != &(*preFetchIt)) {
+				line.lru++;
+			}
+		}
+		
+		/*	
 		if (preFetchIt != currentSet.end()) {
 			preFetchIt->lru = 0;
 			for (auto& line : currentSet) {
@@ -384,6 +392,7 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
 		}
+		*/
 	}
 	
 	outFile << cacheHits << "," << totalAccesses << "; ";
@@ -432,9 +441,17 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 			}
 			
 			if (preFetchIt == currentSet.end()) {
-				preFetchIt == currentSet.begin();
+				preFetchIt = currentSet.begin();
 			}
 			
+			
+			preFetchIt->lru = 0;
+			for (auto& line : currentSet) {
+				if (&line != &(*preFetchIt)) {
+					line.lru++;
+				}
+			}
+			/*
 			if (preFetchIt != currentSet.end()) {
 				preFetchIt->lru = 0;
 				for (auto& line : currentSet) {
@@ -457,6 +474,7 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 				lruIt->tag = instruction.address / cacheLineSize;
 				lruIt->lru = 0;
 			}
+			*/
 		}
 	}
 	
