@@ -363,50 +363,48 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 				lruIt->lru = 0;
 			}
 		}
+		 
+		int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
+		int nextTagLine = nextLineIndex / associativity;
+		auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == nextTagLine;
+		});
 		
-		if (i < memTrace.size() - 1) {
-			const auto& nextInstruction = memTrace[i + 1];
-			int nextSetIndex = (nextInstruction.address / cacheLineSize) % numSets;
-			auto& nextSet = cache[nextSetIndex];
-			auto preFetchIt = find_if(nextSet.begin(), nextSet.end(), [&](const setCacheLine& line) {
-				return line.valid && line.tag == nextInstruction.address / cacheLineSize;
-			});
-			
-			if (preFetchIt != nextSet.end()) {
-				preFetchIt->lru = 0;
-				for (auto& line : nextSet) {
-					if (&line != &(*preFetchIt)) {
-						line.lru++;
-					}
-				}
-			}
-			
-			else {
-				auto lruIt = max_element(nextSet.begin(), nextSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-					return lineA.lru < lineB.lru;
-				});
-				
-				if (nextInstruction.op == 'L') {
-					for (auto& line : nextSet) {
-						line.lru++;	
-					}
-					
-					lruIt->valid = true;
-					lruIt->tag = nextInstruction.address / cacheLineSize;
-					lruIt->lru = 0;
-				}
-				
-				else if (nextInstruction.op == 'S') {
-					for (auto& line : nextSet) {
-						line.lru++;
-					}
-					
-					lruIt->valid = true;
-					lruIt->tag = nextInstruction.address / cacheLineSize;
-					lruIt->lru = 0;
+		if (preFetchIt != currentSet.end()) {
+			preFetchIt->lru = 0;
+			for (auto& line : currentSet) {
+				if (&line != &(*preFetchIt)) {
+					line.lru++;
 				}
 			}
 		}
+		
+		else {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			if (instruction.op == 'S') {
+				for (auto& line : currentSet) {
+					line.lru++;	
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = nextTagLine;
+				lruIt->lru = 0;
+			}
+			
+			if (instruction.op == 'L') {
+				for (auto& line : currentSet) {
+					line.lru++;
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = nextTagLine;
+				lruIt->lru = 0;
+			}
+		}
+		
 	}
 	
 	outFile << cacheHits << "," << totalAccesses << "; ";
@@ -461,47 +459,44 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 				lruIt->lru = 0;
 			}
 			
-			if (i < memTrace.size() - 1) {
-				const auto& nextInstruction = memTrace[i + 1];
-				int nextSetIndex = (nextInstruction.address / cacheLineSize) % numSets;
-				auto& nextSet = cache[nextSetIndex];
-				auto preFetchIt = find_if(nextSet.begin(), nextSet.end(), [&](const setCacheLine& line) {
-					return line.valid && line.tag == nextInstruction.address / cacheLineSize;
-				});
-				
-				if (preFetchIt != nextSet.end()) {
-					preFetchIt->lru = 0;
-					for (auto& line : nextSet) {
-						if (&line != &(*preFetchIt)) {
-							line.lru++;
-						}
+			int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
+			int nextTagLine = nextLineIndex / associativity;
+			auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+				return line.valid && line.tag == nextTagLine;
+			});
+			
+			if (preFetchIt != currentSet.end()) {
+				preFetchIt->lru = 0;
+				for (auto& line : currentSet) {
+					if (&line != &(*preFetchIt)) {
+						line.lru++;
 					}
 				}
+			}
+			
+			else {
+				auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
 				
-				else {
-					auto lruIt = max_element(nextSet.begin(), nextSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-						return lineA.lru < lineB.lru;
-					});
-					
-					if (nextInstruction.op == 'L') {
-						for (auto& line : nextSet) {
-							line.lru++;	
-						}
-						
-						lruIt->valid = true;
-						lruIt->tag = nextInstruction.address / cacheLineSize;
-						lruIt->lru = 0;
+				if (instruction.op == 'S') {
+					for (auto& line : currentSet) {
+						line.lru++;	
 					}
 					
-					else if (nextInstruction.op == 'S') {
-						for (auto& line : nextSet) {
-							line.lru++;
-						}
-						
-						lruIt->valid = true;
-						lruIt->tag = nextInstruction.address / cacheLineSize;
-						lruIt->lru = 0;
+					lruIt->valid = true;
+					lruIt->tag = nextTagLine;
+					lruIt->lru = 0;
+				}
+				
+				if (instruction.op == 'L') {
+					for (auto& line : currentSet) {
+						line.lru++;
 					}
+					
+					lruIt->valid = true;
+					lruIt->tag = nextTagLine;
+					lruIt->lru = 0;
 				}
 			}
 		}
