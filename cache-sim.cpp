@@ -75,24 +75,25 @@ void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, in
 		totalAccesses++;
 		int setIndex = instruction.address / cacheLineSize % numSets;
 		auto& currentSet = cache[setIndex];
-		if (instruction.op == 'L') {
-			auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
-				return line.valid && line.tag == instruction.address / cacheLineSize;
-			});
+		auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+			return line.valid && line.tag == instruction.address / cacheLineSize;
+		});
 		
-			if (it != currentSet.end()) {
-				cacheHits++;
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				it->lru = 0;
+		if (it != currentSet.end()) {
+			cacheHits++;
+			for (auto& line : currentSet) {
+				line.lru++;
 			}
 			
-			else {
-				auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-					return lineA.lru < lineB.lru;
-				});
+			it->lru = 0;
+		}
+			
+		else {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+			});
+			
+			if (instruction.op == 'L') {
 				lruIt->valid = true;
 				lruIt->tag = instruction.address / cacheLineSize;
 				lruIt->lru = 0;
@@ -102,28 +103,18 @@ void simSetAssocCache(const vector<memInstruct>& memTrace, ofstream& outFile, in
 					}
 				}
 			}
-		}
-		
-		else if (instruction.op == 'S') {
-			auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
-				return line.valid && line.tag == instruction.address / cacheLineSize;
-			});
-		
-			if (it != currentSet.end()) {
-				cacheHits++;
+			
+			else if (instruction.op == 'S') {
 				for (auto& line : currentSet) {
-					line.lru++;
+					if (&line != &(*lruIt)) {
+						line.lru++;
+					}
 				}
 				
-				it->lru = 0;
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
 			}
-			
-			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-				return lineA.lru < lineB.lru;
-			});
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
 		}
 	}
 	
@@ -156,13 +147,25 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 				return lineA.lru < lineB.lru;
 			});
 			
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
-			for (auto& line : cache) {
-				if (&line != &(*lruIt)) {
-					line.lru++;
+			if (instruction.op == 'L') {
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+				for (auto& line : cache) {
+					if (&line != &(*lruIt)) {
+						line.lru++;
+					}
 				}
+			}
+			
+			else if (instruction.op == 'S') {
+				for (auto& line : cache) {
+					line.lru++;	
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
 			}	
 		}
 	}
@@ -203,14 +206,27 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 				return lineA.hotCold < lineB.hotCold;
 			});
 			
+			if (instruction.op == 'L') {
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+				lruIt->hotCold = 0;
+				for (auto& line : cache) {
+					line.lru++;
+					line.hotCold++;
+				}
+			}
 			
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
-			lruIt->hotCold = 0;
-			for (auto& line : cache) {
-				line.lru++;
-				line.hotCold++;
+			else if (instruction.op == 'S') {
+				for (auto& line : cache) {
+					line.lru++;
+					line.hotCold++;
+				}
+				
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+				lruIt->hotCold = 0;
 			}
 		}
 	}
@@ -417,13 +433,13 @@ int main(int argc, char *argv[]) {
 	simSetAssocCache(memTrace, outFile, 16);
 	outFile << endl;
 	
-	/*
 	simFullLRUCache(memTrace, outFile);
 	outFile << endl;
 	
 	simHotColdLRUCache(memTrace, outFile);
 	outFile << endl;
 	
+	/*
 	simSetAssocNoAllocCache(memTrace, outFile, 2);
 	simSetAssocNoAllocCache(memTrace, outFile, 4);
 	simSetAssocNoAllocCache(memTrace, outFile, 8);
