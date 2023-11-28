@@ -149,15 +149,10 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		if (it != cache.end()) {
 			cacheHits++;
-			it->lru++;
-			it->hotCold++;
+			it->lru = 0;
+			it->hotCold = 0;
 			for (auto& line : cache) {
-				if (&line == &(*it)) {
-					line.lru = 0;
-					line.hotCold = 0;
-				}
-				
-				else {
+				if (&line != &(*it)) {
 					line.lru++;
 					line.hotCold++;
 				}
@@ -169,11 +164,11 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 				return lineA.lru < lineB.lru;
 			});
 			
-			if (lruIt->hotCold > 0) {
-				lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
-					return lineA.hotCold < lineB.hotCold;
-				});
-			}
+			
+			lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+				return lineA.hotCold < lineB.hotCold;
+			});
+			
 			
 			lruIt->valid = true;
 			lruIt->tag = instruction.address / cacheLineSize;
@@ -198,12 +193,12 @@ void simSetAssocNoAllocCache(const vector<memInstruct>& memTrace, ofstream& outF
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
 		int setIndex = instruction.address / cacheLineSize % sets;
-		auto& set = cache[setIndex];
-		auto it = find_if(set.begin(), set.end(), [&](const setCacheLine& line) {
+		auto& currentSet = cache[setIndex];
+		auto it = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
 			return line.valid && line.tag == instruction.address / cacheLineSize;
 		});
 		
-		if (it != set.end()) {
+		if (it != currentSet.end()) {
 			cacheHits++;
 			it->lru = 0;
 		}
@@ -213,18 +208,17 @@ void simSetAssocNoAllocCache(const vector<memInstruct>& memTrace, ofstream& outF
 		}
 		
 		else {
-			auto lruIt = max_element(set.begin(), set.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+			auto lruIt = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
 				return lineA.lru < lineB.lru;
 			});
 			
 			lruIt->valid = true;
 			lruIt->tag = instruction.address / cacheLineSize;
 			lruIt->lru = 0;
-		}
-		
-		for (auto& line : set) {
-			if (&line != &(*it)) {
-				line.lru++;
+			for (auto& line : currentSet) {
+				if (&line != &(*lruIt)) {
+					line.lru++;
+				}
 			}
 		}
 	}
