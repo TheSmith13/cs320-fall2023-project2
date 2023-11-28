@@ -178,6 +178,7 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 	vector<fullCacheLine> cache(numLines, {false, 0, 0, 0});
 	int cacheHits = 0;
 	int totalAccesses = 0;
+	int hotCold = 0;
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
 		auto it = find_if(cache.begin(), cache.end(), [&](const fullCacheLine& line) {
@@ -191,26 +192,41 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 			for (auto& line : cache) {
 				if (&line != &(*it)) {
 					line.lru++;
-					line.hotCold++;
 				}
 			}
 			
-			it->hotCold = (it->tag % numLines) < (numLines / 2) ? 0 : 1;
+			hotCold = (it->tag % numLines) < (numLines / 2) ? 0 : 1;
 		
 		}
 		
 		else {
-			auto lruIt = max_element(cache.begin(), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
-				return lineA.lru < lineB.lru;
-			});
+			if (hotCold = 0) {
+				auto lruIt = max_element(cache.begin(), cache.begin() + (cache.size() / 2), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+					return lineA.lru < lineB.lru;
+				});
+				
+				for (auto& line : cache) {
+					line.lru++;
+				}  
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+				hotCold = (lruIt->tag % numLines) < (numLines / 2) ? 0 : 1;
+			}
 			
-			for (auto& line : cache) {
-				line.lru++;
-			}  
-			lruIt->valid = true;
-			lruIt->tag = instruction.address / cacheLineSize;
-			lruIt->lru = 0;
-			lruIt->hotCold = (lruIt->tag % numLines) < (numLines / 2) ? 0 : 1;
+			else if (hotCold = 1) {
+				auto lruIt = max_element(cache.begin() + (cache.size() / 2), cache.end(), [](const fullCacheLine& lineA, const fullCacheLine& lineB) {
+				return lineA.lru < lineB.lru;
+				});
+				
+				for (auto& line : cache) {
+					line.lru++;
+				}  
+				lruIt->valid = true;
+				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->lru = 0;
+				hotCold = (lruIt->tag % numLines) < (numLines / 2) ? 0 : 1;
+			}
 		}
 	}
 	
