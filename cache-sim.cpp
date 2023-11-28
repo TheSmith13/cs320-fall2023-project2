@@ -358,6 +358,10 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			preFetchIt = next(it);
 		}
 		
+		if (preFetchIt == currentSet.end()) {
+			preFetchIt == currentSet.begin();
+		}
+			
 		if (preFetchIt != currentSet.end()) {
 			preFetchIt->lru = 0;
 			for (auto& line : currentSet) {
@@ -425,6 +429,10 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 		
 			if (it != currentSet.end()) {
 				preFetchIt = next(it);
+			}
+			
+			if (preFetchIt == currentSet.end()) {
+				preFetchIt == currentSet.begin();
 			}
 			
 			if (preFetchIt != currentSet.end()) {
