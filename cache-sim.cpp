@@ -343,25 +343,13 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 				return lineA.lru < lineB.lru;
 			});
 			
-			if (instruction.op == 'L') {
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
+			for (auto& line : currentSet) {
+				line.lru++;
 			}
 			
-			else if (instruction.op == 'S') {
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
-			}
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
 		}
 		 
 		int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
@@ -384,25 +372,13 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 				return lineA.lru < lineB.lru;
 			});
 			
-			if (instruction.op == 'S') {
-				for (auto& line : currentSet) {
-					line.lru++;	
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = nextTagLine;
-				lruIt->lru = 0;
+			for (auto& line : currentSet) {
+				line.lru++;	
 			}
 			
-			if (instruction.op == 'L') {
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = nextTagLine;
-				lruIt->lru = 0;
-			}
+			lruIt->valid = true;
+			lruIt->tag = nextTagLine;
+			lruIt->lru = 0;
 		}
 		
 	}
@@ -439,26 +415,13 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 				return lineA.lru < lineB.lru;
 			});
 			
-			if (instruction.op == 'L') {
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
+			for (auto& line : currentSet) {
+				line.lru++;
 			}
 			
-			else if (instruction.op == 'S') {
-				for (auto& line : currentSet) {
-					line.lru++;
-				}
-				
-				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
-				lruIt->lru = 0;
-			}
-			
+			lruIt->valid = true;
+			lruIt->tag = instruction.address / cacheLineSize;
+			lruIt->lru = 0;
 			int nextLineIndex = (instruction.address / cacheLineSize + 1) % numSets;
 			int nextTagLine = nextLineIndex / associativity;
 			auto preFetchIt = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
@@ -479,25 +442,13 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 					return lineA.lru < lineB.lru;
 				});
 				
-				if (instruction.op == 'S') {
-					for (auto& line : currentSet) {
-						line.lru++;	
-					}
-					
-					lruIt->valid = true;
-					lruIt->tag = nextTagLine;
-					lruIt->lru = 0;
+				for (auto& line : currentSet) {
+					line.lru++;	
 				}
 				
-				if (instruction.op == 'L') {
-					for (auto& line : currentSet) {
-						line.lru++;
-					}
-					
-					lruIt->valid = true;
-					lruIt->tag = nextTagLine;
-					lruIt->lru = 0;
-				}
+				lruIt->valid = true;
+				lruIt->tag = nextTagLine;
+				lruIt->lru = 0;
 			}
 		}
 	}
