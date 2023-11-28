@@ -326,7 +326,7 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 		int setIndex = instruction.address / cacheLineSize % numSets;
 		auto& currentSet = cache[setIndex];
 		if (i < memTrace.size() - 1) {
-			const auto& nextInstruction = memTrace[i+1];
+			const auto& nextInstruction = memTrace[i + 1];
 			int nextSetIndex = (nextInstruction.address / cacheLineSize) % numSets;
 			auto& nextSet = cache[nextSetIndex];
 			auto preFetchIt = find_if(nextSet.begin(), nextSet.end(), [&](const setCacheLine& line) {
@@ -337,13 +337,25 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 				auto lruIt = max_element(nextSet.begin(), nextSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
 					return lineA.lru < lineB.lru;
 				});
+				
 				lruIt->valid = true;
-				lruIt->tag = instruction.address / cacheLineSize;
+				lruIt->tag = nextInstruction.address / cacheLineSize;
 				lruIt->lru = 0;
+				
+				for (auto& line : nextSet) {
+					if (&line != &(*lruIt)) {
+						line.lru++;
+					}
+				}
 			}
 			
 			else {
 				preFetchIt->lru = 0;
+				for (auto& line : nextSet) {
+					if (&line != &(*preFetchIt)) {
+						line.lru++;
+					}
+				}
 			}
 		}
 		
