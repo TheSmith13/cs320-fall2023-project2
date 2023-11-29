@@ -254,12 +254,14 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 			lruIter->lru = 0;
 		}
 		
-		auto preFetchIter = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+		int preFetchSetIndex = (instruction.address + cacheLineSize) / cacheLineSize % numSets;
+		auto& preFetchSet = cache[preFetchSetIndex];
+		auto preFetchIter = find_if(preFetchSet.begin(), preFetchSet.end(), [&](const setCacheLine& line) {
 			return line.valid && line.tag == (instruction.address + cacheLineSize) / cacheLineSize;
 		});
 		
-		if (preFetchIter != currentSet.end()) {
-			for (auto& line : currentSet) {
+		if (preFetchIter != preFetchSet.end()) {
+			for (auto& line : preFetchSet) {
 				line.lru++;
 			}
 			
@@ -267,17 +269,17 @@ void simSetAssocNextLinePreFetchCache(const vector<memInstruct>& memTrace, ofstr
 		}
 		
 		else {
-			auto preFetchLruIter = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+			auto preFetchLruIter = max_element(preFetchSet.begin(), preFetchSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
 				return lineA.lru < lineB.lru;
 			});
 			
-			for (auto& line : currentSet) {
+			for (auto& line : preFetchSet) {
 				line.lru++;
 			}
 			
-			preFetchIter->valid = true;
-			preFetchIter->tag = (instruction.address + cacheLineSize) / cacheLineSize;
-			preFetchIter->lru = 0;
+			preFetchLruIter->valid = true;
+			preFetchLruIter->tag = (instruction.address + cacheLineSize) / cacheLineSize;
+			preFetchLruIter->lru = 0;
 		}
 	}
 	
@@ -297,7 +299,7 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 		int setIndex = instruction.address / cacheLineSize % numSets;
 		auto& currentSet = cache[setIndex];
 		auto iter = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
-			return line.valid && line.tag == instruction.address / cacheLineSize;
+			return line.valid && line.tag == (instruction.address) / cacheLineSize;
 		});
 		
 		if (iter != currentSet.end()) {
@@ -319,15 +321,17 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 			}
 			
 			lruIter->valid = true;
-			lruIter->tag = instruction.address / cacheLineSize;
+			lruIter->tag = (instruction.address) / cacheLineSize;
 			lruIter->lru = 0;
 			
-			auto preFetchIter = find_if(currentSet.begin(), currentSet.end(), [&](const setCacheLine& line) {
+			int preFetchSetIndex = ((instruction.address + cacheLineSize) / cacheLineSize) % numSets;
+			auto& preFetchSet = cache[preFetchSetIndex];
+			auto preFetchIter = find_if(preFetchSet.begin(), preFetchSet.end(), [&](const setCacheLine& line) {
 				return line.valid && line.tag == (instruction.address + cacheLineSize) / cacheLineSize;
 			});
 			
-			if (preFetchIter != currentSet.end()) {
-				for (auto& line : currentSet) {
+			if (preFetchIter != preFetchSet.end()) {
+				for (auto& line : preFetchSet) {
 					line.lru++;
 				}
 				
@@ -335,17 +339,17 @@ void simSetAssociativeOnMissPreFetchCache(const vector<memInstruct>& memTrace, o
 			}
 			
 			else {
-				auto preFetchLruIter = max_element(currentSet.begin(), currentSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
+				auto preFetchLruIter = max_element(preFetchSet.begin(), preFetchSet.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
 					return lineA.lru < lineB.lru;
 				});
 				
-				for (auto& line : currentSet) {
+				for (auto& line : preFetchSet) {
 					line.lru++;
 				}
 				
-				preFetchIter->valid = true;
-				preFetchIter->tag = (instruction.address + cacheLineSize) / cacheLineSize;
-				preFetchIter->lru = 0;
+				preFetchLruIter->valid = true;
+				preFetchLruIter->tag = (instruction.address + cacheLineSize) / cacheLineSize;
+				preFetchLruIter->lru = 0;
 			}
 		}
 	}
