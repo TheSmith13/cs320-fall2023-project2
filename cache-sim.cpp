@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include "Node.h"
 
 using namespace std;
 const int cacheLineSize = 32;
@@ -94,7 +95,10 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	int totalAccesses = 0;
 	int numLines = setAssocCacheSize / cacheLineSize;
 	vector<setCacheLine> cache(numLines, {false, 0, 0});
-
+	vector<int> hotCold(numLines - 1, 0);
+	Node node;
+	Node hotColdBST = node.createBST(hotCold, 0, hotCold.size());
+	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
 		auto iter = find_if(cache.begin(), cache.end(), [&](const setCacheLine& line) {

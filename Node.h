@@ -1,21 +1,35 @@
+#ifndef _NODE_H_
+#define _NODE_H_
 
-
+#include <vector>
 
 class Node {
 	public:
-		BSTNode(int number);
+		Node(int number);
 		
-		BSTNode();
+		Node();
 		
 		Node* createBST(vector<int> hotCold, int start, int end);
 		
-		Node* findVictim(Node* root);
+		int findVictim(Node* root);
+		
+		void updateTree(Node* victim);
+		
+		bool isLeaf(Node* node);
 		
 		int getData(Node* node);
 		
+		void updataData(int newHotCold);
+		
+		Node* getLeftChild(Node* node);
+		
+		Node* getRightChild(Node* node);
+		
 	private:
 		int data;
-		BSTNode* rightChild;
-		BSTNode* leftChild;
-		BSTNode* parent;
-}
+		Node* rightChild;
+		Node* leftChild;
+		Node* parent;
+};
+
+#endif
