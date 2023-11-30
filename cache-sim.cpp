@@ -142,11 +142,11 @@ void updateHotCold(vector<int> hotCold, int position) {
 
 int findVictim(vector<int> hotCold, int numWays, int position) {
 	if (hotCold[position] == 0) {
-		findVictim(hotCold, numWays, (position * 2) + 1)
+		findVictim(hotCold, numWays, (position * 2) + 1);
 	}
 	
 	else if (hotCold[position] == 1) {
-		findVictim(hotCold, numWays, (position * 2) + 2)
+		findVictim(hotCold, numWays, (position * 2) + 2);
 	}
 }
 
