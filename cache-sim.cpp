@@ -129,6 +129,10 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 }
 
 void updateHotCold(vector<int> hotCold, int position) {
+	if (position < 0) {
+		return;
+	}
+	
 	if (hotCold[position] == 0) {
 		hotCold[position] = 1;
 	}
@@ -141,6 +145,10 @@ void updateHotCold(vector<int> hotCold, int position) {
 }
 
 int findVictim(vector<int> hotCold, int numWays, int position) {
+	if (position > numWays - 1) {
+		return (position) - (numWays - 1);
+	}
+	
 	if (hotCold[position] == 0) {
 		findVictim(hotCold, numWays, (position * 2) + 1);
 	}
