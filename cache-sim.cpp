@@ -128,7 +128,7 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	outFile << cacheHits << "," << totalAccesses << "; ";	
 }
 
-void updateHotCold(vector<int> hotCold, int position) {
+void updateHotCold(vector<int>& hotCold, int position) {
 	if (position < 0) {
 		return;
 	}
@@ -144,17 +144,17 @@ void updateHotCold(vector<int> hotCold, int position) {
 	updateHotCold(hotCold, (position - 1) / 2);
 }
 
-int findVictim(vector<int> hotCold, int numWays, int position) {
+int findVictim(vector<int>& hotCold, int numWays, int position) {
 	if (position > numWays - 1) {
 		return (position) - (numWays - 1);
 	}
 	
 	if (hotCold[position] == 0) {
-		findVictim(hotCold, numWays, (position * 2) + 1);
+		return findVictim(hotCold, numWays, (position * 2) + 1);
 	}
 	
-	else if (hotCold[position] == 1) {
-		findVictim(hotCold, numWays, (position * 2) + 2);
+	else {
+		return findVictim(hotCold, numWays, (position * 2) + 2);
 	}
 }
 
@@ -179,7 +179,7 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		}
 		
 		else {
-			int victimIndex = findVictim(hotCold, numLines, 0);
+			int victimIndex = (findVictim(hotCold, numLines, 0)) % numLines;
 			updateHotCold(hotCold, victimIndex + (numLines - 1));
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
