@@ -132,15 +132,15 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 void updateHotCold(vector<int>& hotCold, int position) {
 	int bitToBeUpdated = position + hotCold.size();
 	while (bitToBeUpdated > 0) {
-		if (bitToBeUpdated % 2 == 0 ) {
-			hotCold[(bitToBeUpdated - 1)] = 1;
+		if (bitToBeUpdated % 2 == 0) {
+			hotCold[((bitToBeUpdated - 1) / 2)] = 1;
 		}
 		
 		else {
-			hotCold[(bitToBeUpdated - 1)] = 1;
+			hotCold[((bitToBeUpdated - 1) / 2)] = 0;
 		}
 		
-		bitToBeUpdated = (bitToBeUpdated - 1) / 2;
+		bitToBeUpdated = ((bitToBeUpdated - 1) / 2);
 	}
 }
 
@@ -175,13 +175,12 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		if (iter != cache.end()) {
 			cacheHits++;
-			updateHotCold(hotCold, cacheIndex + hotCold.size());
+			updateHotCold(hotCold, cacheIndex);
 		}
 		
 		else {
 			int victimIndex = findVictim(hotCold);
-			victimIndex %= numLines;
-			updateHotCold(hotCold, victimIndex + hotCold.size());
+			updateHotCold(hotCold, victimIndex);
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
 			victimLine.tag = instruction.address / cacheLineSize;
