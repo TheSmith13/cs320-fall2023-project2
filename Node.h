@@ -12,7 +12,7 @@ class Node {
 		
 		Node();
 		
-		Node* createBST(vector<int> hotCold, int start, int end);
+		Node* createBST(vector<int> hotCold, int start, int end, Node* parent);
 		
 		int findVictim(Node* root);
 		
@@ -22,7 +22,7 @@ class Node {
 		
 		int getData();
 		
-		void updataData(int newHotCold);
+		void updateData(int newHotCold);
 		
 		Node* getLeftChild();
 		

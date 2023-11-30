@@ -14,7 +14,7 @@ int Node::getData() {
 	return data;
 }
 
-void Node::updataData(int newHotCold) {
+void Node::updateData(int newHotCold) {
 	data = newHotCold;
 }
 
@@ -40,20 +40,32 @@ bool Node::isLeaf(Node* node) {
 	}
 }
 
-Node* Node::createBST(vector<int> hotCold, int start, int end) {
+Node* Node::createBST(vector<int> hotCold, int start, int end, Node* parent) {
 	if (start > end) {
 		return NULL;
 	}
 	
 	int mid = (start + end) / 2;
 	Node* root = new Node(hotCold[mid]);
-	root->leftChild = createBST(hotCold, start, mid - 1);
-	root->rightChild = createBST(hotCold, mid + 1, end);
+	root->parent = parent;
+	root->leftChild = createBST(hotCold, start, mid - 1, root);
+	root->rightChild = createBST(hotCold, mid + 1, end, root);
 	return root;
 }
 
 void Node::updateTree(Node* victim) {
 	
+	if (victim->getData() == 0) {
+			victim->updateData(1);
+		}
+		
+	else if (victim->getData() == 1) {
+		victim->updateData(0);
+	}
+	
+	if (victim->getParent() != NULL) {
+		updateTree(victim->getParent());
+	}
 }
 	
 int Node::findVictim(Node* root) {

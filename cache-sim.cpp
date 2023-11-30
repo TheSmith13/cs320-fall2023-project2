@@ -135,8 +135,8 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 	int numLines = setAssocCacheSize / cacheLineSize;
 	vector<setCacheLine> cache(numLines, {false, 0, 0});
 	vector<int> hotCold(numLines - 1, 0);
-	Node hotColdBST;
-	hotColdBST.createBST(hotCold, 0, hotCold.size());
+	Node* hotColdBST;
+	hotColdBST->createBST(hotCold, 0, hotCold.size(), NULL);
 	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
@@ -149,7 +149,10 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		}
 		
 		else {
-	
+			int victimIndex = hotColdBST->findVictim(hotColdBST);
+			setCacheLine& victimLine = cache[victimIndex];
+			victimLine.valid = true;
+			victimLine.tag = instruction.address / cacheLineSize;
 		}
 	}
 	
