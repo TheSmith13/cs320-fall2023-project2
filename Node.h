@@ -1,7 +1,10 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+using namespace std;
+
 #include <vector>
+#include <cstddef>
 
 class Node {
 	public:
@@ -17,13 +20,15 @@ class Node {
 		
 		bool isLeaf(Node* node);
 		
-		int getData(Node* node);
+		int getData();
 		
 		void updataData(int newHotCold);
 		
-		Node* getLeftChild(Node* node);
+		Node* getLeftChild();
 		
-		Node* getRightChild(Node* node);
+		Node* getRightChild();
+		
+		Node* getParent();
 		
 	private:
 		int data;

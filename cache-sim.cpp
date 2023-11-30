@@ -95,9 +95,6 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	int totalAccesses = 0;
 	int numLines = setAssocCacheSize / cacheLineSize;
 	vector<setCacheLine> cache(numLines, {false, 0, 0});
-	vector<int> hotCold(numLines - 1, 0);
-	Node node;
-	Node hotColdBST = node.createBST(hotCold, 0, hotCold.size());
 	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
@@ -137,6 +134,9 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 	int totalAccesses = 0;
 	int numLines = setAssocCacheSize / cacheLineSize;
 	vector<setCacheLine> cache(numLines, {false, 0, 0});
+	vector<int> hotCold(numLines - 1, 0);
+	Node hotColdBST;
+	hotColdBST.createBST(hotCold, 0, hotCold.size());
 	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
@@ -146,25 +146,10 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		if (iter != cache.end()) {
 			cacheHits++;
-			for (auto& line : cache) {
-				line.lru++;
-			}
-			
-			iter->lru = 0;
 		}
 		
 		else {
-			auto lruIter = max_element(cache.begin(), cache.end(), [](const setCacheLine& lineA, const setCacheLine& lineB) {
-				return lineA.lru < lineB.lru;
-			});
-			
-			for (auto& line : cache) {
-				line.lru++;	
-			}
-			
-			lruIter->valid = true;
-			lruIter->tag = instruction.address / cacheLineSize;
-			lruIter->lru = 0;	
+	
 		}
 	}
 	
