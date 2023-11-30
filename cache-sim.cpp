@@ -3,7 +3,6 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-#include "Node.h"
 
 using namespace std;
 const int cacheLineSize = 32;
@@ -129,34 +128,56 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	outFile << cacheHits << "," << totalAccesses << "; ";	
 }
 
+void updateHotCold(vector<int> hotCold, int position) {
+	if (hotCold[position] == 0) {
+		hotCold[position] = 1;
+	}
+	
+	else if (hotCold[position] == 1) {
+		hotCold[position] = 0;
+	}
+	
+	updateHotCold(hotCold, (position - 1) / 2);
+}
+
+int findVictim(vector<int> hotCold, int numWays, int position) {
+	if (hotCold[position] == 0) {
+		findVictim(hotCold, numWays, (position * 2) + 1)
+	}
+	
+	else if (hotCold[position] == 1) {
+		findVictim(hotCold, numWays, (position * 2) + 2)
+	}
+}
+
+
 void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	int cacheHits = 0;
 	int totalAccesses = 0;
 	int numLines = setAssocCacheSize / cacheLineSize;
 	vector<setCacheLine> cache(numLines, {false, 0, 0});
 	vector<int> hotCold(numLines - 1, 0);
-	Node* hotColdBST = new Node();
-	hotColdBST->createBST(hotCold, 0, hotCold.size(), NULL);
 	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
+		int cacheIndex = (instruction.address / cacheLineSize) % numLines;
 		auto iter = find_if(cache.begin(), cache.end(), [&](const setCacheLine& line) {
 			return line.valid && line.tag == instruction.address / cacheLineSize;
 		});
 		
 		if (iter != cache.end()) {
 			cacheHits++;
+			updateHotCold(hotCold, cacheIndex + (numLines - 1));
 		}
 		
 		else {
-			int victimIndex = hotColdBST->findVictim(hotColdBST);
+			int victimIndex = findVictim(hotCold, numLines, 0);
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
 			victimLine.tag = instruction.address / cacheLineSize;
 		}
 	}
 	
-	delete hotColdBST;
 	outFile << cacheHits << "," << totalAccesses << "; ";
 }
 
