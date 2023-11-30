@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 const int cacheLineSize = 32;
@@ -129,41 +130,40 @@ void simFullLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 }
 
 void updateHotCold(vector<int>& hotCold, int position) {
-	if (position < 0) {
-		return;
-	}
-	
-	if (hotCold[position] == 0) {
-		hotCold[position] = 1;
-	}
-	
-	else if (hotCold[position] == 1) {
-		hotCold[position] = 0;
-	}
-	
-	updateHotCold(hotCold, (position - 1) / 2);
-}
-
-int findVictim(vector<int>& hotCold, int numWays, int position) {
-	if (position > numWays - 1) {
-		return position - (numWays - 1);
-	}
-	
-	if (hotCold[position] == 0) {
-		return findVictim(hotCold, numWays, (position * 2) + 2);
-	}
-	
-	else {
-		return findVictim(hotCold, numWays, (position * 2) + 1);
+	int bitToBeUpdated = position + hotCold.size();
+	while (bitToBeUpdated > 0) {
+		if (bitToBeUpdated % 2 == 0 ) {
+			hotCold[(bitToBeUpdated - 1)] = 1;
+		}
+		
+		else {
+			hotCold[(bitToBeUpdated - 1)] = 1;
+		}
+		
+		bitToBeUpdated = (bitToBeUpdated - 1) / 2;
 	}
 }
 
+int findVictim(vector<int>& hotCold) {
+	int position = 0;
+	while (position < hotCold.size()) {
+		if (hotCold[position] == 1) {
+			position = 2 * position + 1;
+		}
+		
+		else {
+			position = 2 * position + 2;
+		}
+	}
+	
+	return (position - hotCold.size());
+}
 
 void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) {
 	int cacheHits = 0;
 	int totalAccesses = 0;
 	int numLines = setAssocCacheSize / cacheLineSize;
-	vector<setCacheLine> cache(numLines, {false, 0, 0});
+	vector<setCacheLine> cache(numLines, {false, 0, 0}); 
 	vector<int> hotCold(numLines - 1, 0);
 	
 	for (const auto& instruction : memTrace) {
@@ -175,13 +175,13 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		if (iter != cache.end()) {
 			cacheHits++;
-			updateHotCold(hotCold, cacheIndex + (numLines - 1));
+			updateHotCold(hotCold, cacheIndex + hotCold.size());
 		}
 		
 		else {
-			int victimIndex = (findVictim(hotCold, numLines, 0));
+			int victimIndex = findVictim(hotCold);
 			victimIndex %= numLines;
-			updateHotCold(hotCold, victimIndex + (numLines - 1));
+			updateHotCold(hotCold, victimIndex + hotCold.size());
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
 			victimLine.tag = instruction.address / cacheLineSize;
