@@ -146,15 +146,15 @@ void updateHotCold(vector<int>& hotCold, int position) {
 
 int findVictim(vector<int>& hotCold, int numWays, int position) {
 	if (position > numWays - 1) {
-		return (position) - (numWays - 1);
+		return position - (numWays - 1);
 	}
 	
 	if (hotCold[position] == 0) {
-		return findVictim(hotCold, numWays, (position * 2) + 1);
+		return findVictim(hotCold, numWays, (position * 2) + 2);
 	}
 	
 	else {
-		return findVictim(hotCold, numWays, (position * 2) + 2);
+		return findVictim(hotCold, numWays, (position * 2) + 1);
 	}
 }
 
@@ -179,7 +179,8 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		}
 		
 		else {
-			int victimIndex = (findVictim(hotCold, numLines, 0)) % numLines;
+			int victimIndex = (findVictim(hotCold, numLines, 0));
+			victimIndex %= numLines;
 			updateHotCold(hotCold, victimIndex + (numLines - 1));
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
