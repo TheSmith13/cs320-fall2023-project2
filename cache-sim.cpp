@@ -180,6 +180,7 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 		
 		else {
 			int victimIndex = findVictim(hotCold, numLines, 0);
+			updateHotCold(hotCold, victimIndex + (numLines - 1));
 			setCacheLine& victimLine = cache[victimIndex];
 			victimLine.valid = true;
 			victimLine.tag = instruction.address / cacheLineSize;
