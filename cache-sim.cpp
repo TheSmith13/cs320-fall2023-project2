@@ -170,14 +170,20 @@ void simHotColdLRUCache(const vector<memInstruct>& memTrace, ofstream& outFile) 
 	
 	for (const auto& instruction : memTrace) {
 		totalAccesses++;
-		int cacheIndex = (instruction.address / cacheLineSize) % numLines;
+		int lineIndex = -1;
 		auto iter = find_if(cache.begin(), cache.end(), [&](const setCacheLine& line) {
 			return line.valid && line.tag == instruction.address / cacheLineSize;
 		});
 		
+		for (int i = 0; i < cache.size(); ++i) {
+			if (iter->tag == cache[i].tag) {
+				lineIndex = i;
+			}
+		}
+		
 		if (iter != cache.end()) {
 			cacheHits++;
-			updateHotCold(hotCold, cacheIndex);
+			updateHotCold(hotCold, lineIndex);
 		}
 		
 		else {
